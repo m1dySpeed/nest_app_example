@@ -71,7 +71,7 @@ export class AgentService {
 
     if (!agent) throw AgentServiceError.AGENT_NOT_FOUND;
 
-    return `${env.APP_DOMAIN}/register?from=${agent.referalId}`;
+    return `${env.APP_DOMAIN}/register.php?referalId=${agent.referalId}`;
   }
 
   async getOne(query: AgentGetOneQuery) {
