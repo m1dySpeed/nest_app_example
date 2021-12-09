@@ -10,7 +10,7 @@
     "docker:app": "docker-compose --env-file=./.env -f docker/panorama-referal/docker-compose.yml up --build --force-recreate",
     "project:build": "nest build",
     "project:watch": "nest start --watch",
-    "project:start": "node dist/main"
+    "project:start": "node dist/src/main"
   },
   "dependencies": {
     "@nestjs/common": "^8.0.0",
