@@ -10,6 +10,8 @@ async function bootstrap() {
     new ValidationPipe({ transform: true, validateCustomDecorators: true }),
   );
 
+  app.enableCors({ origin: '*' });
+
   await app.listen(env.APP_PORT, env.APP_HOST);
 }
 bootstrap();
