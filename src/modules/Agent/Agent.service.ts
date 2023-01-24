@@ -21,6 +21,7 @@ import {
 import { randomUUID } from 'crypto';
 import { hash } from '../../utils/hash';
 import { env } from '../../utils/env';
+import { isNil, omit, omitBy } from 'lodash';
 
 export enum AgentServiceError {
   AGENT_ALREADY_REGISTERED = 'AGENT_ALREADY_REGISTERED',
@@ -36,6 +37,7 @@ export class AgentService {
   }
 
   async getList(query: AgentGetListQuery) {
+    const { comingFrom, terminated } = query;
     const attributes = [
       'name',
       'surname',
@@ -50,10 +52,13 @@ export class AgentService {
       'terminatedBy',
     ];
 
-    let options = {};
-    if (query.comingFrom)
-      options = { ...options, comingFrom: query.comingFrom };
-    if (query.terminated) options = { ...options, terminated: { $ne: null } };
+    const options = omitBy(
+      {
+        comingFrom,
+        terminated,
+      },
+      isNil,
+    );
 
     return this.Agent.find(options, attributes);
   }
@@ -97,7 +102,7 @@ export class AgentService {
 
     if (agent) throw AgentServiceError.AGENT_ALREADY_REGISTERED;
 
-    const creation = {
+    const newAgentData = {
       name: body.name,
       surname: body.surname,
       lastname: body.lastname ? body.lastname : null,
@@ -113,7 +118,7 @@ export class AgentService {
       terminatedBy: null,
     };
 
-    const newAgent: any = await this.Agent.create(creation);
+    const newAgent: any = await this.Agent.create(newAgentData);
 
     if (referal) {
       await referal
@@ -121,23 +126,27 @@ export class AgentService {
         .catch(this.errorHandler);
     }
 
-    delete newAgent._doc.password;
-    return newAgent;
+    return omit(newAgent, ['password']);
   }
 
   async update(query: AgentUpdateQuery, body: AgentUpdateBody) {
+    const { name, surname, lastname, email, phone, password, percent } = body;
+
     const agent = await this.Agent.findOne(query);
 
     if (!agent) throw AgentServiceError.AGENT_NOT_FOUND;
-    let options = {};
-
-    if (body.name) options = { ...options, name: body.name };
-    if (body.surname) options = { ...options, surname: body.surname };
-    if (body.lastname) options = { ...options, lastname: body.lastname };
-    if (body.email) options = { ...options, email: body.email };
-    if (body.phone) options = { ...options, phone: body.phone };
-    if (body.password) options = { ...options, password: hash(body.password) };
-    if (body.percent) options = { ...options, percent: body.percent };
+    const options = omitBy(
+      {
+        name,
+        surname,
+        lastname,
+        email,
+        phone,
+        password,
+        percent,
+      },
+      isNil,
+    );
 
     await agent.updateOne(options);
 
@@ -146,18 +155,19 @@ export class AgentService {
 
   async terminate(query: AgentTerminateQuery) {
     const agent = await this.Agent.findOne({ _id: query._id });
-    const executioner = await await this.Agent.findOne({
+    const executioner = await this.Agent.findOne({
       _id: query.terminatedBy,
     });
+
     if (!agent) throw AgentServiceError.AGENT_NOT_FOUND;
     if (!executioner) throw AgentServiceError.AGENT_NOT_FOUND;
 
     await agent.updateOne({
-      terminated: new Date().toISOString(),
+      terminated: true,
       terminatedBy: executioner._id,
     });
 
-    return await this.Agent.findOne({ _id: query._id });
+    return this.Agent.findOne({ _id: query._id });
   }
 
   async delete(query: AgentDeleteQuery) {

@@ -40,8 +40,10 @@ export class Agent {
   @Prop()
   employed: Date;
 
-  @Prop()
-  terminated: string;
+  @Prop({
+    default: false,
+  })
+  terminated: boolean;
 
   @Prop()
   terminatedBy: string;
